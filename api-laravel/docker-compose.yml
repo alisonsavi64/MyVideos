@@ -2,10 +2,36 @@ version: '3.8'
 
 services:
   db:
-    image: postgres
-    environment:
-      POSTGRES_DB: watchtv
-      POSTGRES_USER: root
-      POSTGRES_PASSWORD: password
+    image: postgres:14.2
+    restart: always
     ports:
       - "5433:5432"
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: myvideos
+    networks:
+      - myvideos-network
+
+  server:
+    image: nginx:1.27.0
+    restart: always
+    ports:
+      - '80:80'
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./:/var/www/html
+    networks:
+      - myvideos-network
+
+  php:
+    build: .
+    container_name: php-fpm
+    volumes:
+      - ./:/var/www/html
+    networks:
+      - myvideos-network
+
+networks:
+  myvideos-network:
+    driver: bridge
