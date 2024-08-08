@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreVideoRequest;
 use App\Models\Video;
 use App\Repositories\VideoRepository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class VideoController extends Controller
@@ -17,29 +17,6 @@ class VideoController extends Controller
     public function __construct(VideoRepository $videoRepository)
     {
         $this->videoRepository = $videoRepository;
-    }
-
-    public function play($id)
-    {
-        $video = $this->videoRepository->findVideoById($id);
-
-        $path = storage_path("app/" . $video->video_path);
-        if (!File::exists($path)) {
-            abort(404);
-        }
-
-        $headers = [
-            'Content-Type' => 'video/mp4',
-            'Content-Length' => filesize($path),
-            'Content-Disposition' => 'inline; filename="' . $path . '"',
-            'Accept-Ranges' => 'bytes',
-        ];
-
-        return response()->stream(function () use ($path) {
-            $stream = fopen($path, 'r');
-            fpassthru($stream);
-            fclose($stream);
-        }, 200, $headers);
     }
 
     public function edit($id)
@@ -52,18 +29,9 @@ class VideoController extends Controller
         }
     }
 
-    public function store(Request $request)
+    public function store(StoreVideoRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'title' => 'required|string|max:255',
-            'category' => 'required|exists:categories,id',
-            'media' => 'required|file|mimes:mp4,mov,avi',
-            'thumbnail' => 'image|mimes:jpeg,png,jpg,gif',
-        ], [
-            'category.exists' => 'The selected category does not exist.',
-            'media.max' => 'The media file may not be greater than :max kilobytes.',
-            'thumbnail.max' => 'The thumbnail may not be greater than :max kilobytes.',
-        ]);
+        $validator = $request->validated();
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 400);
@@ -78,19 +46,21 @@ class VideoController extends Controller
             $video = $this->videoRepository->createVideo($data);
 
             if ($request->hasFile('media')) {
-                $this->videoRepository->storeVideoMedia($video, $request->file('media'));
+                $path = $request->file('media')->store("public/videos/{$video->user_id}", [
+                    'disk' => 's3',
+                    'visibility' => 'public',
+                    'acl' => 'public-read'
+                ]);
+                $this->videoRepository->storeVideoPath($video, $path);
             }
 
             if ($request->hasFile('thumbnail')) {
-                $this->videoRepository->storeVideoThumbnail($video, $request->file('thumbnail'));
-            } else {
-                $defaultThumbnailPath = $this->videoRepository->getDefaultThumbnailPath();
-                if (file_exists($defaultThumbnailPath)) {
-                    $fileNameToStore = $video->id . '.png';
-                    $path = Storage::putFileAs("public/thumbnails/{$video->user_id}", $defaultThumbnailPath, $fileNameToStore);
-                    $video->thumb_path = $path;
-                    $video->save();
-                }
+                $path = $request->file('thumbnail')->store("public/thumbnails/{$video->user_id}", [
+                    'disk' => 's3',
+                    'visibility' => 'public',
+                    'acl' => 'public-read'
+                ]);
+                $this->videoRepository->storeThumbnailPath($video, $path);
             }
 
             return response()->json(['message' => 'Video created successfully', 'video' => $video], 200);

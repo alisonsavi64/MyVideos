@@ -26,7 +26,6 @@ Route::group(['middleware' => 'auth:api', 'prefix' => 'user'], function () {
 Route::group(['middleware' => 'auth:api', 'prefix' => 'video'], function () {
     Route::post('/', [VideoController::class, 'store']);
     Route::get('/', [VideoController::class, 'all']);
-    Route::get('/play/{id}', [VideoController::class, 'play']);
     Route::get('/{id}', [VideoController::class, 'edit']);
     Route::get('/playlist/{id}', [VideoController::class, 'allFromPlaylist']);
 });
