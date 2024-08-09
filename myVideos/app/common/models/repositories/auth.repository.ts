@@ -7,6 +7,6 @@ export interface loginDTO{
 }
 
 export const login = async ({email, password}: loginDTO) => {
-    const { data } = await client.post<UserModel>('/sessions', {email, password});
+    const { data } = await client.post<UserModel>('/auth/login', {email, password});
     return data;
 }

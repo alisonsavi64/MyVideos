@@ -8,7 +8,6 @@ const useLoginViewModel = () => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
     const onSubmit = async () => {
-        console.log({email, password});
         try{
             setIsLoading(true);
             const response = await login({email, password});
