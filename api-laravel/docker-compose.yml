@@ -29,6 +29,7 @@ services:
     container_name: php-fpm
     volumes:
       - ./:/var/www/html
+      - ./php.ini:/usr/local/etc/php/conf.d/custom.ini
     networks:
       - myvideos-network
 

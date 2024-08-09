@@ -50,26 +50,20 @@ class VideoRepository
         return $query->limit($page * 8)->get();
     }
     
-    public function storeVideoMedia($video, $mediaFile)
+    public function storeVideoPath($video, $path)
     {
-        $extension = $mediaFile->getClientOriginalExtension();
-        $fileNameToStore = $video->id . '.' . $extension;
-        $path = $mediaFile->storeAs("public/videos/{$video->user_id}", $fileNameToStore);
-        $video->video_path = $path;
+        $video->video_path = env('AWS_BUCKET_URL') . $path;
         $video->save();
     }
 
-    public function storeVideoThumbnail($video, $thumbnailFile)
+    public function storeThumbnailPath($video, $path)
     {
-        $extension = $thumbnailFile->getClientOriginalExtension();
-        $fileNameToStore = $video->id . '.' . $extension;
-        $path = $thumbnailFile->storeAs("public/thumbnails/{$video->user_id}", $fileNameToStore);
-        $video->thumb_path = $path;
+        $video->thumb_path = env('AWS_BUCKET_URL') . $path;
         $video->save();
     }
 
     public function getDefaultThumbnailPath()
     {
-        return public_path('default_thumb.png');
+        // return env('AWS_BUCKET_URL') . 'default_thumb.png';
     }
 }
